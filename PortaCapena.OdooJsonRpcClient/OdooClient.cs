@@ -268,7 +268,19 @@ namespace PortaCapena.OdooJsonRpcClient
         public static async Task<OdooResult<Dictionary<string, OdooPropertyInfo>>> GetModelAsync(OdooConfig odooConfig, int userUid, string tableName, CancellationToken cancellationToken = default)
         {
             var request = OdooRequestModel.ModelFields(odooConfig, userUid, tableName);
-            return await CallAndDeserializeAsync<Dictionary<string, OdooPropertyInfo>>(request, cancellationToken);
+            var result = await CallAndDeserializeAsync<Dictionary<string, OdooPropertyInfo>>(request, cancellationToken);
+
+            // On Odoo v11 (and probably older versions), the Name property is not available
+            // in the JSON response. It is only available in the object key so I copy it here so that
+            // we can forget the key everywhere else.
+            if (result.Value is null) return result;
+            foreach (var property in result.Value)
+            {
+                if (property.Value.Name == null)
+                    property.Value.Name = property.Key;
+            }
+
+            return result;
         }
 
         #endregion
